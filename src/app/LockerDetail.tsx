@@ -58,7 +58,7 @@ export default function LockerDetail() {
           <DialogTrigger asChild>
             <Button className="bg-orange-400">Lihat kode</Button>
           </DialogTrigger>
-          <DialogContent className="w-[85vw] rounded-lg h-[50dvh]">
+          <DialogContent className="w-[85vw] rounded-lg h-[60dvh]">
             <DialogHeader>
               <DialogTitle className="text-xl">
                 {showQR ? "Kode QR" : "Kode pin"}

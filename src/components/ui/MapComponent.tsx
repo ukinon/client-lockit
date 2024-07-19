@@ -106,7 +106,7 @@ const MapComponent: React.FC = () => {
           <div className="flex flex-col">
             <p>Cluster A</p>
             <a
-              href="https://www.google.com/maps/dir/?api=1&destination=-6.175110,106.865036"
+              href={`https://www.google.com/maps/dir/?api=1&destination=${initialPosition.lat},${initialPosition.lng}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-orange-500"
