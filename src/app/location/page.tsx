@@ -4,7 +4,7 @@ import React from "react";
 import dynamic from "next/dynamic";
 
 const MapComponent = dynamic(() => import("@/components/ui/MapComponent"), {
-  loading: () => <p>A map is loading</p>,
+  loading: () => <p>Memuat peta... </p>,
   ssr: false,
 });
 
