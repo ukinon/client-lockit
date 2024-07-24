@@ -11,6 +11,8 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { LockerData } from "@/app/LockerDetail";
+import { listenToData } from "@/lib/firebaseRealtimeOperation";
 
 const customIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
@@ -86,7 +88,18 @@ function RecenterButton({ initialPosition }: { initialPosition: Position }) {
 
 const MapComponent: React.FC = () => {
   const initialPosition: Position = { lat: 51.505, lng: -0.09 };
+  const [list, setList] = useState<LockerData>();
 
+  useEffect(() => {
+    const unsubscribe = listenToData(["boxes"], (data: LockerData | null) => {
+      if (data) {
+        setList(data);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  console.log(list);
   return (
     <MapContainer
       center={initialPosition}
@@ -100,24 +113,34 @@ const MapComponent: React.FC = () => {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <LocationMarker />
-      <Marker
-        position={[initialPosition.lat, initialPosition.lng]}
-        icon={markerIcon}
-      >
-        <Popup>
-          <div className="flex flex-col">
-            <p>Cluster A</p>
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${initialPosition.lat},${initialPosition.lng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-orange-500"
-            >
-              Navigasi
-            </a>
-          </div>
-        </Popup>
-      </Marker>
+      {list &&
+        Object.entries(list as LockerData)?.map(([id, data]) => {
+          return (
+            <>
+              {data.lat && data.lon && (
+                <Marker
+                  key={id}
+                  position={[data.lat, data.lon]}
+                  icon={markerIcon}
+                >
+                  <Popup>
+                    <div className="flex flex-col">
+                      <p>{data?.name}</p>
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${data?.lat},${data?.lon}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-orange-500"
+                      >
+                        Navigasi
+                      </a>
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+            </>
+          );
+        })}
     </MapContainer>
   );
 };
