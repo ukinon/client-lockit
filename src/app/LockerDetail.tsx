@@ -71,7 +71,7 @@ export default function LockerDetail() {
       },
       {
         orderBy: "user_id",
-        equalTo: undefined,
+        equalTo: "",
       }
     );
     return () => unsubscribe();
