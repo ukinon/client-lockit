@@ -206,8 +206,8 @@ export default function LockerDetail() {
                     <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
+                <PopoverContent className="w-full p-0 z-[999999999999999999999999999999999999999999]">
+                  <Command className="z-[9999999999999999999999999999]">
                     <CommandInput placeholder="Cari loker..." className="h-9" />
                     <CommandEmpty>Loker tidak ditemukan.</CommandEmpty>
                     <CommandGroup>
