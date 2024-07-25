@@ -10,7 +10,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { BiChevronDown, BiKey, BiLock, BiNavigation } from "react-icons/bi";
+import {
+  BiChevronDown,
+  BiCurrentLocation,
+  BiKey,
+  BiLock,
+  BiNavigation,
+} from "react-icons/bi";
 import QRCode from "qrcode.react";
 import { PiLockers, PiLockKey } from "react-icons/pi";
 import {
@@ -34,8 +40,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CheckIcon } from "@radix-ui/react-icons";
+import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
 import { getLocation } from "@/lib/location";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MdLocationPin } from "react-icons/md";
+import { TbLocationPin } from "react-icons/tb";
 
 export type Data = {
   id?: number;
@@ -52,22 +61,24 @@ export type LockerData = {
 };
 
 export default function LockerDetail() {
-  const [showQR, setShowQR] = React.useState(true);
+  const [showQR, setShowQR] = useState(true);
   const [data, setData] = useState<Data | null>(null);
-  const [open, setOpen] = React.useState(false);
-  const [locker, setLocker] = React.useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [locker, setLocker] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [list, setList] = useState<LockerData>();
   const [location, setLocation] = useState("");
 
   useEffect(() => {
+    setIsLoading(true);
     const unsubscribe = listenToData(
       ["boxes"],
       (data: LockerData | null) => {
         if (data) {
           setList(data);
         }
+        setIsLoading(false);
       },
       {
         orderBy: "user_id",
@@ -78,35 +89,45 @@ export default function LockerDetail() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = listenToData(
-      ["boxes"],
-      (data: LockerData | null) => {
-        if (data) {
-          setData(data[Object.keys(data)[0]] as Data);
+    if (list) {
+      setIsLoading(true);
+      const unsubscribe = listenToData(
+        ["boxes"],
+        (data: LockerData | null) => {
+          if (data) {
+            setData(data[Object.keys(data)[0]] as Data);
+          }
+          setIsLoading(false);
+        },
+        {
+          orderBy: "user_id",
+          equalTo: "1",
         }
-      },
-      {
-        orderBy: "user_id",
-        equalTo: "1",
-      }
-    );
-    return () => unsubscribe();
-  }, []);
+      );
+      return () => unsubscribe();
+    }
+  }, [list]);
 
   useEffect(() => {
     async function getLoc() {
       if (data) {
-        const response = await getLocation(
-          data?.lat.toString(),
-          data?.lon.toString()
-        );
-        setLocation(response);
+        setIsLoading(true);
+        try {
+          const response = await getLocation(
+            data?.lat.toString(),
+            data?.lon.toString()
+          );
+          setLocation(response);
+        } catch (error) {
+          console.error("Error fetching location:", error);
+          setError("Failed to fetch location");
+        } finally {
+          setIsLoading(false);
+        }
       }
     }
     getLoc();
   }, [data]);
-
-  console.log(location);
 
   function handleBook() {
     if (locker) {
@@ -126,7 +147,20 @@ export default function LockerDetail() {
     }
   }
 
-  console.log(data);
+  if (isLoading) {
+    return (
+      <div className="fixed top-0 left-0 h-screen w-screen z-[9999999999999999999999999]">
+        <div className="relative w-screen h-screen overflow-hidden">
+          <div className="flex items-center justify-center h-screen space-x-2 bg-white dark:invert">
+            <span className="sr-only">Loading...</span>
+            <div className="h-4 w-4 bg-orange-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+            <div className="h-4 w-4 bg-orange-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+            <div className="w-4 h-4 rounded-full bg-orange-400 animate-bounce"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -142,16 +176,14 @@ export default function LockerDetail() {
       ) : (
         <Dialog>
           <DialogTrigger>
-            <>
-              <Button
-                className={`flex flex-row justify-between items-center gap-5 self-center rounded-xl border shadow-md w-full h-[10dvh] px-10 py-2 hover:bg-orange-400 ${
-                  !data && "bg-orange-400 text-white"
-                }`}
-              >
-                <h3 className="text-xl font-semibold">Sewa Loker</h3>
-                <BiKey className="text-5xl" />{" "}
-              </Button>
-            </>
+            <Button
+              className={`flex flex-row justify-between items-center gap-5 self-center rounded-xl border shadow-md w-full h-[10dvh] px-10 py-2 hover:bg-orange-400 ${
+                !data && "bg-orange-400 text-white"
+              }`}
+            >
+              <h3 className="text-xl font-semibold">Sewa Loker</h3>
+              <BiKey className="text-5xl" />
+            </Button>
           </DialogTrigger>
           <DialogContent className="w-[85vw] rounded-lg h-[30dvh]">
             <DialogHeader>
@@ -161,49 +193,46 @@ export default function LockerDetail() {
               <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                   <Button
+                    variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className=" justify-between bg-transparent border-orange-400 text-orange-400 focus:bg-transparent hover:bg-transparent border shadow-none w-full"
+                    className="w-full border-orange-400 border justify-between"
                   >
                     {locker && list
-                      ? Object.entries(list as LockerData).find(
+                      ? Object.entries(list).find(
                           ([id, data]) => id === locker
                         )?.[1].name
-                      : "Select framework..."}
-                    <BiChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      : "Pilih loker..."}
+                    <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[200px] text-orange-400 p-0">
-                  <Command className="w-full">
-                    <CommandInput placeholder="Cari loker..." />
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Cari loker..." className="h-9" />
                     <CommandEmpty>Loker tidak ditemukan.</CommandEmpty>
-                    <CommandList>
-                      <CommandGroup>
+                    <CommandGroup>
+                      <CommandList>
                         {list &&
-                          Object.entries(list as LockerData)?.map(
-                            ([id, data]) => (
-                              <CommandItem
-                                key={data.name}
-                                value={data.name}
-                                onSelect={() => {
-                                  setLocker(id === locker ? "" : id);
-                                  setOpen(false);
-                                }}
-                              >
-                                <CheckIcon
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    locker === data.name
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {data.name}
-                              </CommandItem>
-                            )
-                          )}
-                      </CommandGroup>
-                    </CommandList>
+                          Object.entries(list).map(([id, data]) => (
+                            <CommandItem
+                              key={id}
+                              value={data.name}
+                              onSelect={() => {
+                                setLocker(id === locker ? "" : id);
+                                setOpen(false);
+                              }}
+                            >
+                              <CheckIcon
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  locker === id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {data.name}
+                            </CommandItem>
+                          ))}
+                      </CommandList>
+                    </CommandGroup>
                   </Command>
                 </PopoverContent>
               </Popover>
@@ -225,9 +254,15 @@ export default function LockerDetail() {
           <h2 className="text-2xl font-bold">Detail Loker</h2>
 
           <div className="flex flex-col gap-2">
-            <p className="text-base font-semibold">Lokasi</p>
+            <div className="flex flex-row gap-2 items-center">
+              <BiCurrentLocation className="text-xl" />
+              <p className="text-base font-semibold">Lokasi</p>
+            </div>
+
             <div className="flex justify-between items-center">
-              <p className="w-9/12 text-sm">{location}</p>
+              <p className="w-9/12 text-sm">
+                {location || <Skeleton className="w-40 bg-zinc-300" />}
+              </p>
               <a
                 href={`https://www.google.com/maps/dir/?api=1&destination=${data.lat},${data.lon}`}
                 target="_blank"
@@ -257,31 +292,7 @@ export default function LockerDetail() {
                     includeMargin={true}
                   />
                 ) : (
-                  <InputOTP
-                    maxLength={4}
-                    pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
-                    value={data.pin.toString()}
-                    disabled
-                  >
-                    <InputOTPGroup>
-                      <InputOTPSlot
-                        className="text-3xl text-orange-500 font-semibold border-black/75 h-11 w-11"
-                        index={0}
-                      />
-                      <InputOTPSlot
-                        className="text-3xl text-orange-500 font-semibold border-black/75 h-11 w-11"
-                        index={1}
-                      />
-                      <InputOTPSlot
-                        className="text-3xl text-orange-500 font-semibold border-black/75 h-11 w-11"
-                        index={2}
-                      />
-                      <InputOTPSlot
-                        className="text-3xl text-orange-500 font-semibold border-black/75 h-11 w-11"
-                        index={3}
-                      />
-                    </InputOTPGroup>
-                  </InputOTP>
+                  <p className="text-5xl font-semibold text-orange-400">{`1-${data.id}-${data.pin}`}</p>
                 )}
               </div>
               <DialogFooter>
@@ -296,7 +307,7 @@ export default function LockerDetail() {
           </Dialog>
         </div>
       )}
-      {!data && (
+      {!data && !isLoading && (
         <div className="flex flex-col items-center justify-center h-[50dvh] gap-10">
           <BiLock className="text-8xl text-orange-400" />
           <h3 className="text-lg">Kamu belum menyewa loker</h3>
